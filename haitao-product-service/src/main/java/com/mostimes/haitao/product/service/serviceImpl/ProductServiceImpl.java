@@ -176,7 +176,7 @@ public class ProductServiceImpl implements ProductService {
                     pmsCommentListStr = jedis.lrange( "commentType:"+ type + ":" + productId + ":info",(commentPage - 1) * 10, (commentPage) * 10 - 1);
                 }
 
-                if (!pmsCommentListStr.isEmpty()){ // 该商品评价已存在redis
+                if (!pmsCommentListStr.isEmpty()){ // 该商品评价数据已存在redis
                     for (String str : pmsCommentListStr){
                         pmsCommentList.add(JSON.parseObject(str, PmsComment.class));
                     }

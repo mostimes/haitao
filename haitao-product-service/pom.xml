@@ -8,11 +8,9 @@
         <version>1.0-SNAPSHOT</version>
         <relativePath>../haitao-parent/pom.xml</relativePath>
     </parent>
-
     <groupId>com.mostimes.haitao</groupId>
     <artifactId>haitao-product-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>haitao-product-service</name>
     <description>Demo project for Spring Boot</description>
 
     <properties>
@@ -41,5 +39,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

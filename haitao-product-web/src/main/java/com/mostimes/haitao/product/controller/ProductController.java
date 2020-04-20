@@ -32,8 +32,8 @@ public class ProductController {
     @RequestMapping(value = "/product/getCommentByProductId")
     public List<PmsComment> getCommentByProductId(String productId, String page, String type){ return productService.getComment(productId, page, type); }
 
-    @RequestMapping(value = "/product/getCommentCountByProductId")
-    public PmsCommentCount getCommentCountByProductId(String productId){ return productService.getCommentCount(productId); }
+    @RequestMapping(value = "/product/getProductCountByProductId")
+    public PmsProductCount getProductCountByProductId(String productId){ return productService.getProductCount(productId); }
 
     @RequestMapping(value = "/product/getProductAttr")
     public Map<String, List<PmsProductSaleAttrValue>> getProductAttr(String productId){ return productService.getProductAttr(productId); }
@@ -46,5 +46,10 @@ public class ProductController {
     @RequestMapping(value = "/product/getCarousel")
     public List<CmsCarousel> getCarousel(String type){
         return productService.getCarousel(type);
+    }
+
+    @RequestMapping(value = "/product/fluctuateProductCount")
+    public void fluctuateProductCount(String productId, String type, String fluctuate){
+        productService.fluctuateProductCount(productId, type, fluctuate);
     }
 }

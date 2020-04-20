@@ -23,8 +23,8 @@ public interface ProductService {
     @RequestMapping(value = "/getCommentById/{productId}/{commentPage}/{type}")
     List<PmsComment> getComment(@PathVariable("productId") String productId, @PathVariable("commentPage") String page, @PathVariable("type") String type);
 
-    @RequestMapping(value = "/getCommentCountById/{productId}")
-    PmsCommentCount getCommentCount(@PathVariable("productId") String productId);
+    @RequestMapping(value = "/getProductCountById/{productId}")
+    PmsProductCount getProductCount(@PathVariable("productId") String productId);
 
     @RequestMapping(value = "/gerProductAttr/{productId}")
     Map<String, List<PmsProductSaleAttrValue>> getProductAttr(@PathVariable("productId") String productId);
@@ -34,4 +34,7 @@ public interface ProductService {
 
     @RequestMapping(value = "getCarousel/{type}")
     List<CmsCarousel> getCarousel(@PathVariable("type") String type);
+
+    @RequestMapping(value = "/fluctuateProductCount/{productId}/{type}/{fluctuate}")
+    void fluctuateProductCount(@PathVariable("productId") String productId, @PathVariable("type") String type, @PathVariable("fluctuate") String fluctuate);
 }

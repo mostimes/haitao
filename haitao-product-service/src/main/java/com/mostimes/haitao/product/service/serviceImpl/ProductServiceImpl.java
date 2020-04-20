@@ -5,10 +5,10 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mostimes.haitao.entity.PmsComment;
-import com.mostimes.haitao.entity.PmsCommentCount;
+import com.mostimes.haitao.entity.PmsProductCount;
 import com.mostimes.haitao.entity.PmsProduct;
 import com.mostimes.haitao.entity.PmsProductImage;
-import com.mostimes.haitao.product.mapper.ProductCommentCountMapper;
+import com.mostimes.haitao.product.mapper.ProductProductCountMapper;
 import com.mostimes.haitao.product.mapper.ProductCommentMapper;
 import com.mostimes.haitao.product.mapper.ProductImageMapper;
 import com.mostimes.haitao.product.mapper.ProductMapper;
@@ -33,7 +33,7 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     ProductCommentMapper productCommentMapper;
     @Autowired
-    ProductCommentCountMapper productCommentCountMapper;
+    ProductProductCountMapper productProductCountMapper;
     @Autowired
     RedisUtil redisUtil;
 
@@ -46,9 +46,9 @@ public class ProductServiceImpl implements ProductService {
             jedis = redisUtil.getJedis();
             if (jedis != null){
                 String productStr = jedis.get("product:productId:" + productId + ":info");
-                if (StringUtils.isNotBlank(productStr)){ //该商品存在redis
+                if (StringUtils.isNotBlank(productStr)){ //该商品数据存在redis
                     pmsProduct = JSON.parseObject(productStr, PmsProduct.class);
-                }else { //该商品未在redis中，查询数据库
+                }else { //该商品数据未在redis中，查询数据库
                     pmsProduct = getProductByIdFromDB(productId, 0);
                 }
             }else { //开启redis失败，尝试从数据库查找
@@ -67,7 +67,9 @@ public class ProductServiceImpl implements ProductService {
             Jedis jedis = null;
             try {
                 jedis = redisUtil.getJedis();
-                jedis.set("product:productId:" + pmsProduct.getId() + ":info",JSON.toJSONString(pmsProduct));
+                if(jedis != null){
+                    jedis.set("product:productId:" + productId + ":info",JSON.toJSONString(pmsProduct));
+                }
             }finally {
                 jedis.close();
             }
@@ -118,8 +120,48 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    //用商品id查找商品数据统计
+    public PmsProductCount getProductCountByProductId(String productId) {
+        Jedis jedis = null;
+        PmsProductCount pmsProductCount = null;
+        try{
+            jedis = redisUtil.getJedis();
+            if (jedis != null){
+                String productCountStr = jedis.get("productCount:productId:"+ productId + ":info");
+                if (StringUtils.isNotBlank(productCountStr)){ // 该商品数据统计已存在redis
+                    pmsProductCount = JSON.parseObject(productCountStr, PmsProductCount.class);
+                }else {
+                    pmsProductCount = getProductCountByIdFromDB(productId, 0);
+                }
+            }else { //开启redis失败，尝试从数据库查找
+                pmsProductCount = getProductCountByIdFromDB(productId, 0);
+            }
+            return pmsProductCount;
+        }finally {
+            jedis.close();
+        }
+    }
+
+    //从数据库中用商品id查找商品数据统计
+    public PmsProductCount getProductCountByIdFromDB(String productId, int cache){
+        Map<String,Object> map = new HashMap<>();
+        map.put("product_id", productId);
+        PmsProductCount productCount = productProductCountMapper.selectByMap(map).get(0);
+        if (cache == 0){
+            Jedis jedis = null;
+            try {
+                jedis = redisUtil.getJedis();
+                jedis.set("productCount:productId:"+ productId + ":info", JSON.toJSONString(productCount));
+            }finally {
+                jedis.close();
+            }
+        }
+        return productCount;
+    }
+
+    @Override
     //用商品id查找评价
-    public List<PmsComment> getCommentByProductId(String productId, String page,String type) {
+    public List<PmsComment> getCommentByProductId(String productId, String page, String type) {
         int commentPage = Integer.valueOf(page).intValue();
         Jedis jedis = null;
         List<PmsComment> pmsCommentList = new ArrayList<>();
@@ -128,9 +170,9 @@ public class ProductServiceImpl implements ProductService {
             if (jedis != null){
                 List<String> pmsCommentListStr;
 
-                if ("3".equals(type)){
+                if ("3".equals(type)){ //查询全部商品评价
                     pmsCommentListStr = jedis.lrange( "comment:productId:" + productId + ":info", (commentPage - 1) * 10, (commentPage) * 10 - 1);
-                }else {
+                }else { //分类查询商品评价
                     pmsCommentListStr = jedis.lrange( "commentType:"+ type + ":" + productId + ":info",(commentPage - 1) * 10, (commentPage) * 10 - 1);
                 }
 
@@ -198,43 +240,39 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    //用商品id查找评价统计
-    public PmsCommentCount getCommentCountByProductId(String productId) {
+    //增加商品统计数据
+    public void fluctuateProductCount(String productId, String type, int fluctuate){
         Jedis jedis = null;
-        PmsCommentCount pmsCommentCount;
+        PmsProductCount productCount = null;
         try{
             jedis = redisUtil.getJedis();
             if (jedis != null){
-                String pmsCommentCountStr = jedis.get("commentCount:productId:" + productId +":info");
-                if (StringUtils.isNotBlank(pmsCommentCountStr)){ // 该商品评论统计已存在redis
-                    pmsCommentCount = JSON.parseObject(pmsCommentCountStr, PmsCommentCount.class);
-                }else { //商品评价统计未在redis中，查询数据库
-                    pmsCommentCount = getCommentCountByIdFromDB(productId, 0);
+                String productCountStr = jedis.get("productCount:productId:"+ productId + ":info");
+                if (StringUtils.isNotBlank(productCountStr)){
+                    productCount = JSON.parseObject(productCountStr, PmsProductCount.class);
+                    if ("1".equals(type)){
+                        productCount.setCollectCount(productCount.getCollectCount() + fluctuate);
+                    } else if("2".equals(type)) {
+                        productCount.setSaleCount(productCount.getSaleCount() + fluctuate);
+                    } else if("3".equals(type)) {
+                        productCount.setVisitCount(productCount.getVisitCount() + fluctuate);
+                    } else if("4".equals(type)) {
+                        productCount.setFavourableComment(productCount.getFavourableComment() + fluctuate);
+                    } else if("5".equals(type)) {
+                        productCount.setMediumComment(productCount.getMediumComment() + fluctuate);
+                    } else if("6".equals(type)) {
+                        productCount.setBadComment(productCount.getBadComment() + fluctuate);
+                    }
+                    jedis.set("productCount:productId:"+ productId + ":info",JSON.toJSONString(productCount));
+                    if (productCount.getCollectCount() % 10 == 0 || productCount.getSaleCount() % 10 == 0 || productCount.getVisitCount() % 10 == 0 || productCount.getFavourableComment() % 10 == 0 || productCount.getMediumComment() % 10 == 0 ||productCount.getBadComment() % 10 == 0){
+                        productProductCountMapper.updateById(productCount);
+                    }
+                }else {
+                    getProductCountByIdFromDB(productId, 0);
                 }
-            }else { //开启redis失败，尝试从数据库查找
-                pmsCommentCount = getCommentCountByIdFromDB(productId, 1);
-
             }
-            return pmsCommentCount;
         }finally {
             jedis.close();
         }
-    }
-
-    //从数据库中用商品id查找评价统计
-    public PmsCommentCount getCommentCountByIdFromDB(String productId, int cache){
-        Map<String,Object> map = new HashMap<>();
-        map.put("product_id", productId);
-        PmsCommentCount pmsCommentCount = productCommentCountMapper.selectByMap(map).get(0);
-        if (cache == 0){
-            Jedis jedis = null;
-            try {
-                jedis = redisUtil.getJedis();
-                jedis.set("commentCount:productId:" + pmsCommentCount.getProductId() + ":info", JSON.toJSONString(pmsCommentCount));
-            }finally {
-                jedis.close();
-            }
-        }
-        return pmsCommentCount;
     }
 }

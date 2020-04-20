@@ -31,7 +31,7 @@ public class CarouselServiceImpl implements CarouselService {
         try {
             jedis = redisUtil.getJedis();
             if (jedis != null){
-                List<String> carouselListStr = jedis.lrange("carousel:isEnabled:"+ type +":info",-1,0);
+                List<String> carouselListStr = jedis.lrange("carousel:isEnabled:"+ type +":info",0,-1);
                 if (!carouselListStr.isEmpty()){ //数据已存在redis
                     for (String carousel : carouselListStr){
                         carouselList.add(JSON.parseObject(carousel, CmsCarousel.class));

@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-public class getProductController {
+public class GetProductController {
     @Autowired
     ProductService productService;
 

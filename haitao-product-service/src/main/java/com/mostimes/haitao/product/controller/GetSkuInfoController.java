@@ -1,6 +1,5 @@
 package com.mostimes.haitao.product.controller;
 
-import com.mostimes.haitao.entity.PmsProduct;
 import com.mostimes.haitao.entity.PmsSkuInfo;
 import com.mostimes.haitao.product.service.ProductSkuService;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;

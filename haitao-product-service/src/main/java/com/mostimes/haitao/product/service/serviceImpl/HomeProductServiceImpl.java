@@ -19,9 +19,11 @@ public class  HomeProductServiceImpl implements HomeProductService {
     RedisUtil redisUtil;
 
     @Override
-    public List<PmsProduct> getRecommendProduct(String productType) { //获取推荐商品
+    //获取首页商品
+    public List<PmsProduct> getRecommendProduct(String productType) {
         Map<String, Object> map = new HashMap<>();
         map.put("product_type", productType);
+        //获取首页商品
         List<PmsProduct> pmsProductList = homeProductMapper.selectByMap(map);
         return pmsProductList;
     }
